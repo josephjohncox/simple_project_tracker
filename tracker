@@ -1,0 +1,3 @@
+#!/bin/sh
+
+python3 project_tracker/main.py

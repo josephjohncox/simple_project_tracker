@@ -1,0 +1,24 @@
+[project]
+name = "project-tracker"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "Joseph Cox",email = "abovemind@gmail.com"}
+]
+packages = [
+    { include = "project_tracker" }
+]
+
+readme = "README.md"
+requires-python = ">=3.12,<4.0"
+dependencies = [
+    "dash (>=2.18.2,<3.0.0)",
+    "plotly (>=6.0.0,<7.0.0)",
+    "pandas (>=2.2.3,<3.0.0)",
+    "nicegui (>=2.11.1,<3.0.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"

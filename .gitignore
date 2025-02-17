@@ -1,0 +1,40 @@
+# Storage folder
+storage/
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+.Python
+env/
+venv/
+build/
+dist/
+*.egg-info/
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*,cover
+.hypothesis/
+
+# SQLite database file
+project_tracker.db
+
+# Dash and debug log files
+*.log
+
+# macOS specific files
+.DS_Store
+
+# Virtual environment folders
+env/
+venv/ 
