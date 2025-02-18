@@ -1,25 +1,24 @@
 # mypy: ignore_missing_imports
-import sqlite3
 import datetime
-from typing import List, Dict, Any
+from typing import List, Dict, Any, cast
 from collections import defaultdict
 import project_tracker.theme as theme
 import pandas as pd
 import plotly.express as px  # type: ignore
 from project_tracker.employee_management import EmployeeManager
 from nicegui import ui
-from project_tracker.config import DATABASE
+from project_tracker.db import get_connection, init_db
 
 # Create a new project
 def add_project(project_name: str) -> None:
-    conn = sqlite3.connect(DATABASE)
+    conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("INSERT INTO projects(name) VALUES (?)", (project_name,))
     conn.commit()
     conn.close()
 
 def fetch_projects() -> List[Dict[str, Any]]:
-    conn = sqlite3.connect(DATABASE)
+    conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT id, name FROM projects")
     rows = cursor.fetchall()
@@ -27,7 +26,7 @@ def fetch_projects() -> List[Dict[str, Any]]:
     return [{"id": row[0], "name": row[1]} for row in rows]
 
 def get_project_id(project_name: str) -> int:
-    conn = sqlite3.connect(DATABASE)
+    conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT id FROM projects WHERE name = ?", (project_name,))
     row = cursor.fetchone()
@@ -36,7 +35,7 @@ def get_project_id(project_name: str) -> int:
 
 # Fetch only projects that do not have a "Done" log entry
 def fetch_not_done_projects() -> List[Dict[str, Any]]:
-    conn = sqlite3.connect(DATABASE)
+    conn = get_connection()
     cursor = conn.cursor()
     cursor.execute(
         "SELECT id, name FROM projects WHERE id NOT IN (SELECT project_id FROM project_status WHERE status = 'Done')"
@@ -48,7 +47,7 @@ def fetch_not_done_projects() -> List[Dict[str, Any]]:
 # Add a new project log entry using projected end date
 def add_log(employee: str, project_id: int, status: str, projected_end_date: datetime.date) -> None:
     now: str = datetime.datetime.now().isoformat()
-    conn = sqlite3.connect(DATABASE)
+    conn = get_connection()
     cursor = conn.cursor()
     cursor.execute(
         """
@@ -62,7 +61,7 @@ def add_log(employee: str, project_id: int, status: str, projected_end_date: dat
 
 # Delete a project log entry by id
 def delete_log(log_id: int) -> None:
-    conn = sqlite3.connect(DATABASE)
+    conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("DELETE FROM project_status WHERE id = ?", (log_id,))
     conn.commit()
@@ -70,7 +69,7 @@ def delete_log(log_id: int) -> None:
 
 # Fetch all project log entries
 def fetch_all_logs() -> List[Dict[str, Any]]:
-    conn = sqlite3.connect(DATABASE)
+    conn = get_connection()
     cursor = conn.cursor()
     cursor.execute(
         """
@@ -84,16 +83,14 @@ def fetch_all_logs() -> List[Dict[str, Any]]:
     conn.close()
     logs: List[Dict[str, Any]] = []
     for row in rows:
-        logs.append(
-            {
+        logs.append({
                 "id": row[0],
                 "employee": row[1],
                 "project_name": row[2],
                 "status": row[3],
                 "commit_time": row[4],
                 "projected_end_date": row[5],
-            }
-        )
+            })
     return logs
 
 # Compute summary for completed projects (where status is 'Done') by computing durations in hours
@@ -156,13 +153,13 @@ def create_status_graph() -> Any:
             y="count",
             color="status",
             barmode="group",
-            title="Commits per Week by Status",
-        )
-        fig.update_xaxes(title="Commit Week")
-        fig.update_yaxes(title="Count")
+            title="Commits per Week by Status"  # type: ignore
+        )  # type: ignore
+        fig.update_xaxes(title="Commit Week")  # type: ignore
+        fig.update_yaxes(title="Count")  # type: ignore
         return fig
     else:
-        return px.bar()
+        return px.bar()  # type: ignore
 
 # Create a Plotly scatter plot comparing actual vs. projected durations for completed projects
 def create_time_vs_projected_graph() -> Any:
@@ -189,8 +186,8 @@ def create_time_vs_projected_graph() -> Any:
                 "project": project,
                 "actual_duration": actual_duration,
                 "projected_duration": projected_duration,
-            })
-    scatter_func: Any = px.scatter
+            })  # type: ignore
+    scatter_func: Any = px.scatter  # type: ignore
     if records:
         df = pd.DataFrame(records)
         fig = scatter_func(
@@ -198,12 +195,12 @@ def create_time_vs_projected_graph() -> Any:
             x="projected_duration",
             y="actual_duration",
             color="employee",
-            hover_data=["project"],
+            hover_data=["project"],  # type: ignore
             labels={
                 "projected_duration": "Projected Duration (hrs)",
-                "actual_duration": "Actual Duration (hrs)",
+                "actual_duration": "Actual Duration (hrs)"
             },
-        )
+        )  # type: ignore
         # Add an ideal line y = x
         fig.add_scatter(
             x=df["projected_duration"],
@@ -211,12 +208,12 @@ def create_time_vs_projected_graph() -> Any:
             mode="lines",
             line=dict(dash="dash"),
             name="Ideal",
-        )
-        fig.update_xaxes(title="Projected Duration (hrs)")
-        fig.update_yaxes(title="Actual Duration (hrs)")
+        )  # type: ignore
+        fig.update_xaxes(title="Projected Duration (hrs)")  # type: ignore
+        fig.update_yaxes(title="Actual Duration (hrs)")  # type: ignore
         return fig
     else:
-        return scatter_func()
+        return scatter_func()  # type: ignore
 
 # Create an HTML table of weekly commit statuses
 def create_commit_table() -> str:
@@ -228,11 +225,11 @@ def create_commit_table() -> str:
         df["commit_dt"] = pd.to_datetime(df["commit_time"], errors="raise")  # type: ignore
         period_series = df["commit_dt"].dt.to_period("W")
         df["commit_week"] = period_series.apply(get_period_start_date)  # type: ignore
-        start_week: datetime.date = pd.to_datetime(df["commit_week"].min()).date()
-        end_week: datetime.date = pd.to_datetime(df["commit_week"].max()).date()
-        current: datetime.date = start_week
+        start_week: datetime.date = pd.to_datetime(df["commit_week"].min()).date()  # type: ignore
+        end_week: datetime.date = pd.to_datetime(df["commit_week"].max()).date()  # type: ignore
+        current: datetime.date = cast(datetime.date, start_week)
         while current <= end_week:
-            week_list.append(current)
+            week_list.append(current)  # type: ignore
             current += datetime.timedelta(days=7)
     else:
         today = datetime.date.today()
@@ -243,9 +240,9 @@ def create_commit_table() -> str:
     if logs:
         for _, row in df.iterrows():  # type: ignore
             employee_val: str = str(row["employee"])
-            commit_week_val: datetime.date = pd.to_datetime(row["commit_week"]).date()
+            commit_week_val: datetime.date = pd.to_datetime(row["commit_week"]).date()  # type: ignore
             key: tuple[str, datetime.date] = (employee_val, commit_week_val)
-            status_by_emp_week.setdefault(key, []).append(row["status"])
+            status_by_emp_week.setdefault(key, []).append(row["status"])  # type: ignore
 
     def determine_color(statuses: List[str]) -> str:
         if any(s in {"Blocked", "At Risk"} for s in statuses):
@@ -304,45 +301,22 @@ def create_project_table() -> str:
 
 class ProjectTracker:
     def __init__(self) -> None:
-        self.employee_select: ui.select | None = None
-        self.project_select: ui.select | None = None
-        self.status_select: ui.select | None = None
-        self.projected_end_date_input: ui.date | None = None
-        self.new_project_input: ui.input | None = None
+        self.employee_select: Any = None
+        self.project_select: Any = None
+        self.status_select: Any = None
+        self.projected_end_date_input: Any = None
+        self.new_project_input: Any = None
 
-        self.status_graph: ui.plotly | None = None
-        self.time_graph: ui.plotly | None = None
-        self.summary_label: ui.markdown | None = None
-        self.commit_table: ui.html | None = None
-        self.logs_container: ui.column | None = None
-        self.project_table: ui.table | None = None
+        self.status_graph: Any = None
+        self.time_graph: Any = None
+        self.summary_label: Any = None
+        self.commit_table: Any = None
+        self.logs_container: Any = None
+        self.project_table: Any = None
 
     @staticmethod
     def init_db() -> None:
-        conn = sqlite3.connect(DATABASE)
-        cursor = conn.cursor()
-        cursor.execute(
-            """
-            CREATE TABLE IF NOT EXISTS project_status(
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                employee TEXT NOT NULL,
-                project_id INTEGER NOT NULL,
-                status TEXT NOT NULL,
-                commit_time TEXT NOT NULL,
-                projected_end_date TEXT NOT NULL
-            );
-            """
-        )
-        cursor.execute( 
-            """
-            CREATE TABLE IF NOT EXISTS projects(
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL UNIQUE
-            );
-            """
-        )
-        conn.commit()
-        conn.close()
+        init_db()
 
     def update_employee_select(self) -> None:
         options = [emp["name"] for emp in EmployeeManager.fetch_employees()]
@@ -418,7 +392,7 @@ class ProjectTracker:
                         ui.label(drec["projected_end_date"]).classes("w-20")
                         ui.button(
                             "Delete",
-                            on_click=lambda rec_id=drec["id"]: self.delete_and_update(rec_id)
+                            on_click=lambda e, rec_id=drec["id"]: self.delete_and_update(rec_id)
                         ).classes("bg-red text-white q-ml-md")
 
     def delete_and_update(self, rec_id: int) -> None:
@@ -489,9 +463,62 @@ class ProjectTracker:
                         self.logs_container = ui.column().classes("q-mt-md")
                         self.update_logs_table()
 
-# New function to be used as a NiceGUI page
-def project_tracker_page() -> None:
+# Removed unified page; now splitting into two pages below.
+
+def status_updates_page() -> None:
     tracker = ProjectTracker()
     ProjectTracker.init_db()
-    tracker.create_ui()
+    with theme.frame("Project Tracker - Status Updates"):
+        ui.label("Project Status Updates").classes("text-h3 q-pa-md")
+        with ui.row():
+            with ui.column():
+                with ui.card().classes("q-pa-md"):
+                    ui.label("Add New Log Entry").classes("text-h6")
+                    tracker.employee_select = ui.select(
+                        options=[emp["name"] for emp in EmployeeManager.fetch_employees()],
+                        label="Employee"
+                    )
+                    tracker.project_select = ui.select(
+                        options=[p["name"] for p in fetch_not_done_projects()],
+                        label="Project"
+                    )
+                    tracker.status_select = ui.select(
+                        options=["Blocked", "At Risk", "Off Track", "Not Started", "In Progress", "Canceled", "Done"],
+                        value="Not Started",
+                        label="Status"
+                    )
+                    tracker.projected_end_date_input = ui.date(datetime.date.today().isoformat())
+                    ui.button("Submit Log", on_click=tracker.submit_log).classes("q-mt-md")
+            with ui.column():
+                with ui.card().classes("q-pa-md"):
+                    ui.label("Project Results").classes("text-h6")
+                    tracker.status_graph = ui.plotly(create_status_graph()).classes("q-mt-md")
+                    tracker.time_graph = ui.plotly(create_time_vs_projected_graph()).classes("q-mt-md")
+                    tracker.summary_label = ui.markdown("").classes("q-mt-md")
+                with ui.card().classes("q-pa-md q-mt-md"):
+                    ui.label("Commit Table").classes("text-h6")
+                    tracker.commit_table = ui.html(create_commit_table()).classes("q-mt-md")
+                with ui.card().classes("q-pa-md q-mt-md"):
+                    ui.label("Project Logs").classes("text-h6")
+                    tracker.logs_container = ui.column().classes("q-mt-md")
+                    tracker.update_logs_table()
+
+def project_list_page() -> None:
+    tracker = ProjectTracker()
+    ProjectTracker.init_db()
+    with theme.frame("Project Tracker - Projects List"):
+        ui.label("Projects List").classes("text-h3 q-pa-md")
+        with ui.card().classes("q-pa-md"):
+            ui.label("Create New Project").classes("text-h6")
+            tracker.new_project_input = ui.input("Project Name")
+            ui.button("Create Project", on_click=tracker.submit_new_project).classes("q-mt-md")
+        with ui.card().classes("q-pa-md q-mt-md"):
+            ui.label("Projects List").classes("text-h6")
+            tracker.project_table = ui.table(
+                rows=fetch_projects(),
+                columns=[
+                    {"name": "id", "label": "ID", "field": "id", "align": "left"},
+                    {"name": "name", "label": "Project Name", "field": "name", "align": "left"},
+                ],
+            ).classes("q-mt-md")
 

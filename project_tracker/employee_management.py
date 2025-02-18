@@ -4,7 +4,7 @@ from nicegui import ui
 from typing import List, Dict, Any, Optional
 import sqlite3
 from project_tracker.config import DATABASE
-import app.theme as theme
+import project_tracker.theme as theme
 
 class EmployeeManager:
     def __init__(self) -> None:
