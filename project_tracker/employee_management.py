@@ -5,6 +5,7 @@ from typing import List, Dict, Any, Optional
 import sqlite3
 from project_tracker.config import DATABASE
 import project_tracker.theme as theme
+from project_tracker.db import get_connection
 
 class EmployeeManager:
     def __init__(self) -> None:
@@ -13,7 +14,7 @@ class EmployeeManager:
 
     @staticmethod
     def init_employees() -> None:
-        conn = sqlite3.connect(DATABASE)
+        conn = get_connection()
         cursor = conn.cursor()
         cursor.execute(
             """
@@ -28,7 +29,7 @@ class EmployeeManager:
 
     @staticmethod
     def add_employee(name: str) -> None:
-        conn = sqlite3.connect(DATABASE)
+        conn = get_connection()
         cursor = conn.cursor()
         cursor.execute("INSERT INTO employees(name) VALUES (?)", (name,))
         conn.commit()
@@ -36,7 +37,7 @@ class EmployeeManager:
 
     @staticmethod
     def delete_employee(emp_id: int) -> None:
-        conn = sqlite3.connect(DATABASE)
+        conn = get_connection()
         cursor = conn.cursor()
         cursor.execute("DELETE FROM employees WHERE id = ?", (emp_id,))
         conn.commit()
@@ -44,7 +45,7 @@ class EmployeeManager:
 
     @staticmethod
     def fetch_employees() -> List[Dict[str, Any]]:
-        conn = sqlite3.connect(DATABASE)
+        conn = get_connection()
         cursor = conn.cursor()
         cursor.execute("SELECT id, name FROM employees ORDER BY name ASC")
         rows = cursor.fetchall()
